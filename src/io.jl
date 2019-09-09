@@ -93,52 +93,52 @@ end
 
 ##### Array{String} #####
 
-const UNDEF_LENGTH = typemax(UInt32) # if your string is exaclty 4GB you're out of luck
+# const UNDEF_LENGTH = typemax(UInt32) # if your string is exaclty 4GB you're out of luck
 
-function mmwrite(io::AbstractSerializer, xs::Array{String})
-    Serialization.serialize_type(io, MMSer{typeof(xs)})
+# function mmwrite(io::AbstractSerializer, xs::Array{String})
+#     Serialization.serialize_type(io, MMSer{typeof(xs)})
 
-    lengths = UInt32[]
-    buffer = UInt8[]
-    serialize(io, size(xs))
-    # todo: write directly to buffer, but also mmap
-    ptr = pointer(buffer)
-    for i in 1:length(xs)
-        if isassigned(xs, i)
-            x = xs[i]
-            l = sizeof(x)
-            lb = length(buffer)
-            push!(lengths, l)
-            resize!(buffer, lb+l)
-            unsafe_copyto!(pointer(buffer)+lb, pointer(x), l)
-            ptr += l
-        else
-            push!(lengths, UNDEF_LENGTH)
-        end
-    end
+#     lengths = UInt32[]
+#     buffer = UInt8[]
+#     serialize(io, size(xs))
+#     # todo: write directly to buffer, but also mmap
+#     ptr = pointer(buffer)
+#     for i in 1:length(xs)
+#         if isassigned(xs, i)
+#             x = xs[i]
+#             l = sizeof(x)
+#             lb = length(buffer)
+#             push!(lengths, l)
+#             resize!(buffer, lb+l)
+#             unsafe_copyto!(pointer(buffer)+lb, pointer(x), l)
+#             ptr += l
+#         else
+#             push!(lengths, UNDEF_LENGTH)
+#         end
+#     end
 
-    mmwrite(io, buffer)
-    mmwrite(io, lengths)
-end
+#     mmwrite(io, buffer)
+#     mmwrite(io, lengths)
+# end
 
-function mmread(::Type{Array{String,N}}, io, mmap) where N
-    sz = deserialize(io)
-    buf = deserialize(io)
-    lengths = deserialize(io)
+# function mmread(::Type{Array{String,N}}, io, mmap) where N
+#     sz = deserialize(io)
+#     buf = deserialize(io)
+#     lengths = deserialize(io)
 
-   #@assert length(buf) == sum(filter(x->x>0, lengths))
-   #@assert prod(sz) == length(lengths)
+#    #@assert length(buf) == sum(filter(x->x>0, lengths))
+#    #@assert prod(sz) == length(lengths)
 
-    ys = Array{String,N}(undef, (sz...,)) # output
-    ptr = pointer(buf)
-    @inbounds for i = 1:length(ys)
-        l = lengths[i]
-        l == UNDEF_LENGTH && continue
-        ys[i] = unsafe_string(ptr, l)
-        ptr += l
-    end
-    ys
-end
+#     ys = Array{String,N}(undef, (sz...,)) # output
+#     ptr = pointer(buf)
+#     @inbounds for i = 1:length(ys)
+#         l = lengths[i]
+#         l == UNDEF_LENGTH && continue
+#         ys[i] = unsafe_string(ptr, l)
+#         ptr += l
+#     end
+#     ys
+# end
 
 
 ## Optimized fixed length IO
